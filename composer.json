@@ -1,0 +1,39 @@
+{
+  "name":        "a15lam/df-mqtt",
+  "description": "MQTT client service for DreamFactory",
+  "keywords":    [
+    "dreamfactory",
+    "dsp",
+    "rest",
+    "iot",
+    "mqtt",
+    "mosquitto"
+  ],
+  "homepage":    "https://github.com/a15lam/df-mqtt",
+  "license":     "Apache-2.0",
+  "authors":     [
+    {
+      "name":  "Arif Islam",
+      "email": "areef.islam@gmail.com"
+    }
+  ],
+  "support":     {
+    "email":  "areef.islam@gmail.com",
+    "source": "https://github.com/a15lam/df-mqtt",
+    "issues": "https://github.com/a15lam/df-mqtt/issues",
+    "wiki":   "https://github.com/a15lam/df-mqtt/wiki"
+  },
+  "require":     {
+    "dreamfactory/df-core": "~0.9.0"
+  },
+  "autoload":    {
+    "psr-4": {
+      "a15lam\\MQTT\\": "src/"
+    }
+  },
+  "extra":       {
+    "branch-alias": {
+      "dev-develop": "0.1.x-dev"
+    }
+  }
+}
