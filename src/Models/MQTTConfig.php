@@ -26,6 +26,7 @@ class MQTTConfig extends BaseServiceConfigModel
     /** @var array */
     protected $casts = [
         'service_id' => 'integer',
+        'port'       => 'integer',
         'use_tls'    => 'boolean'
     ];
 
