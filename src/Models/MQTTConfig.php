@@ -6,8 +6,6 @@ use DreamFactory\Core\Models\BaseServiceConfigModel;
 
 class MQTTConfig extends BaseServiceConfigModel
 {
-    //use ServiceEventMapper;
-
     /** @var string */
     protected $table = 'mqtt_config';
 
@@ -20,7 +18,8 @@ class MQTTConfig extends BaseServiceConfigModel
         'username',
         'password',
         'use_tls',
-        'capath'
+        'capath',
+        'subscription'
     ];
 
     /** @var array */
@@ -35,27 +34,6 @@ class MQTTConfig extends BaseServiceConfigModel
 
     /** @var array */
     protected $protected = ['password'];
-
-//    /**
-//     * {@inheritdoc}
-//     */
-//    public static function getConfigSchema()
-//    {
-//        $schema = parent::getConfigSchema();
-//        $sem = ServiceEventMap::getConfigSchema();
-//        $sem[1]['label'] = 'Message';
-//        $schema[] = [
-//            'name'        => 'service_event_map',
-//            'label'       => 'Service Event',
-//            'description' => 'Select event(s) when you would like this service to fire!',
-//            'type'        => 'array',
-//            'required'    => false,
-//            'allow_null'  => true,
-//            'items'       => $sem,
-//        ];
-//
-//        return $schema;
-//    }
 
     /**
      * {@inheritdoc}
@@ -76,7 +54,8 @@ class MQTTConfig extends BaseServiceConfigModel
                 break;
             case 'client_id':
                 $schema['label'] = 'Client ID';
-                $schema['description'] = 'Client ID used for this connection. Make sure this is unique for all of your clients connecting to broker.';
+                $schema['description'] =
+                    'Client ID used for this connection. Make sure this is unique for all of your clients connecting to broker.';
                 break;
             case 'username':
                 $schema['label'] = 'Username';

@@ -3,9 +3,36 @@
 namespace a15lam\MQTT\Services;
 
 use a15lam\MQTT\Components\MosquittoClient;
+use a15lam\MQTT\Resources\Pub;
+use a15lam\MQTT\Resources\Sub;
 
 class MQTT extends BaseService
 {
+    /** @type array Service Resources */
+    protected static $resources = [
+        Pub::RESOURCE_NAME => [
+            'name'       => Pub::RESOURCE_NAME,
+            'class_name' => Pub::class,
+            'label'      => 'Publish'
+        ],
+        Sub::RESOURCE_NAME => [
+            'name'       => Sub::RESOURCE_NAME,
+            'class_name' => Sub::class,
+            'label'      => 'Subscribe'
+        ]
+    ];
+
+    /** @inheritdoc */
+    public function getResources($only_handlers = false)
+    {
+        return ($only_handlers) ? static::$resources : array_values(static::$resources);
+    }
+
+    /**
+     * Sets the client component
+     *
+     * @param array $config
+     */
     protected function setClient($config)
     {
         $host = array_get($config, 'host');
@@ -15,20 +42,20 @@ class MQTT extends BaseService
         $password = array_get($config, 'password');
         $useTls = array_get($config, 'use_tls');
         $capath = array_get($config, 'capath');
-
-        $this->client = new MosquittoClient($host, $port, $clientId, $username, $password);
-        if($useTls && !empty($capath)){
-            $this->client->setCAPath($capath);
+        if (!$useTls) {
+            $capath = null;
         }
+
+        $this->client = new MosquittoClient($host, $port, $clientId, $username, $password, $capath);
     }
 
-    protected function handlePOST()
+    /**
+     * Returns the client component
+     *
+     * @return \a15lam\MQTT\Components\MosquittoClient
+     */
+    public function getClient()
     {
-        $topic = $this->request->input('topic');
-        $message = (string) $this->request->input('msg', $this->request->input('message'));
-
-        $this->client->publish($topic, $message);
-
-        return ['success' => true];
+        return $this->client;
     }
 }

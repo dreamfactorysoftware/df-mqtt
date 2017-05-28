@@ -8,7 +8,7 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 
 abstract class BaseService extends BaseRestService
 {
-    /** @var  \a15lam\Components\MosquittoClient */
+    /** @var  \a15lam\MQTT\Components\MosquittoClient */
     protected $client;
 
     public function __construct(array $settings)

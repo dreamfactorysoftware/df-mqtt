@@ -3,34 +3,75 @@
 namespace a15lam\MQTT\Components;
 
 use a15lam\MQTT\Exceptions\LoopException;
+use a15lam\MQTT\Jobs\Subscribe;
 use Log;
 
 class MosquittoClient
 {
-    protected $client;
-
     protected $host;
 
     protected $port = 1883;
 
-    public function __construct($host, $port, $clientId, $username = null, $password = null)
+    protected $clientId;
+
+    protected $username;
+
+    protected $password;
+
+    protected $caPath;
+
+    public function __construct($host, $port, $clientId, $username = null, $password = null, $caPath = null)
     {
         $this->host = $host;
         $this->port = $port;
-        $this->client = new \Mosquitto\Client($clientId);
-        if (!empty($username) && !empty($password)) {
-            $this->client->setCredentials($username, $password);
-        }
+        $this->clientId = $clientId;
+        $this->username = $username;
+        $this->password = $password;
+        $this->caPath = $caPath;
     }
 
-    public function setCAPath($path)
+    public function getConfig($clientIdSuffix = '')
     {
-        $this->client->setTlsCertificates($path);
+        return [
+            'client_id' => $this->clientId . $clientIdSuffix,
+            'host' => $this->host,
+            'port' => $this->port,
+            'username' => $this->username,
+            'password' => $this->password,
+            'ca_path' => $this->caPath
+        ];
+    }
+
+    public function getHost()
+    {
+        return $this->host;
+    }
+
+    public function getPort()
+    {
+        return $this->port;
+    }
+
+    public static function client($config)
+    {
+        $clientId = array_get($config, 'client_id', 'df-client-' . time());
+        $username = array_get($config, 'username');
+        $password = array_get($config, 'password');
+        $caPath = array_get($config, 'ca_path');
+        $client = new \Mosquitto\Client($clientId);
+        if (!empty($username) && !empty($password)) {
+            $client->setCredentials($username, $password);
+        }
+        if(!empty($caPath)){
+            $client->setTlsCertificates($caPath);
+        }
+
+        return $client;
     }
 
     public function publish($topic, $msg)
     {
-        $client = $this->client;
+        $client = static::client($this->getConfig('-pub'));
         $client->onConnect(function () use ($client, $topic, $msg){
             Log::info('[MQTT] Connected to MQTT broker.');
             Log::debug('[MQTT] Now publishing message: ' . $msg . ' using topic: ' . $topic);
@@ -43,29 +84,27 @@ class MosquittoClient
                 throw new LoopException('Publish Completed.');
             }
         });
-        $this->client = $client;
-        $this->client->connect($this->host, $this->port);
+        $client->connect($this->host, $this->port);
         // Subscribing to the published topic in order to
         // successfully terminate the execution loop upon
         // checking the reception of the published topic/message.
-        $this->client->subscribe($topic, 0);
-        $this->execute();
-    }
-
-    protected function execute()
-    {
+        $client->subscribe($topic, 0);
         while (1) {
             try {
-                $this->client->loop();
+                $client->loop();
             } catch (LoopException $e) {
+                $client->disconnect();
+                unset($client);
                 return;
             }
         }
-        $this->client->disconnect();
     }
 
-    public function __destruct()
+    public function subscribe($payload)
     {
-        unset($this->client);
+        $job = new Subscribe($this, $payload);
+        $id = dispatch($job);
+
+        return $id;
     }
 }
