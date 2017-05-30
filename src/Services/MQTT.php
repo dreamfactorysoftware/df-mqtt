@@ -5,6 +5,8 @@ namespace a15lam\MQTT\Services;
 use a15lam\MQTT\Components\MosquittoClient;
 use a15lam\MQTT\Resources\Pub;
 use a15lam\MQTT\Resources\Sub;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Utility\Session;
 
 class MQTT extends BaseService
 {
@@ -57,5 +59,39 @@ class MQTT extends BaseService
     public function getClient()
     {
         return $this->client;
+    }
+
+    /** @inheritdoc */
+    public static function getApiDocInfo($service)
+    {
+        $base = parent::getApiDocInfo($service);
+
+        $apis = [];
+        $models = [];
+        foreach (static::$resources as $resourceInfo) {
+            $resourceClass = array_get($resourceInfo, 'class_name');
+
+            if (!class_exists($resourceClass)) {
+                throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
+                    $resourceClass);
+            }
+
+            $resourceName = array_get($resourceInfo, static::RESOURCE_IDENTIFIER);
+            if (Session::checkForAnyServicePermissions($service->name, $resourceName)) {
+                $results = $resourceClass::getApiDocInfo($service->name, $resourceInfo);
+                if (isset($results, $results['paths'])) {
+                    $apis = array_merge($apis, $results['paths']);
+                }
+                if (isset($results, $results['definitions'])) {
+                    $models = array_merge($models, $results['definitions']);
+                }
+            }
+        }
+
+        $base['paths'] = array_merge($base['paths'], $apis);
+        $base['definitions'] = array_merge($base['definitions'], $models);
+        unset($base['paths']['/' . $service->name]['get']['parameters']);
+
+        return $base;
     }
 }

@@ -12,13 +12,14 @@ use a15lam\MQTT\Exceptions\LoopException;
 use a15lam\MQTT\Components\MosquittoClient;
 use ServiceManager;
 use Log;
+use Cache;
 
 class Subscribe implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /** Topic for subscription terminator */
-    const TERMINATOR = 'DF/TERMINATE';
+    const TERMINATOR = 'DF:MQTT:TERMINATE';
 
     /** @var \a15lam\MQTT\Components\MosquittoClient */
     protected $client;
@@ -42,6 +43,14 @@ class Subscribe implements ShouldQueue
     }
 
     /**
+     * @return array
+     */
+    public function getTopics()
+    {
+        return $this->topics;
+    }
+
+    /**
      * Job handler
      */
     public function handle()
@@ -55,38 +64,29 @@ class Subscribe implements ShouldQueue
         $client->onMessage(function ($m) use ($topics){
             Log::debug('[MQTT] Received message on topic: ' . $m->topic . ' with payload ' . $m->payload);
 
-            if (static::TERMINATOR === $m->topic && is_numeric($m->payload)) {
-                $jobId = (int)$m->payload;
-                if ($jobId > 0) {
-                    Log::debug('[MQTT] Terminating subscription jobs');
+            $service = array_by_key_value($topics, 'topic', $m->topic, 'service');
+            Log::debug('[MQTT] Triggering service: ' . json_encode($service));
 
-                    throw new LoopException('Subscription terminated on-demand.');
-                }
-            } else {
-                $service = array_by_key_value($topics, 'topic', $m->topic, 'service');
-                Log::debug('[MQTT] Triggering service: ' . json_encode($service));
+            // Retrieve service information
+            $name = array_get($service, 'name');
+            $resource = array_get($service, 'resource');
+            $verb = strtoupper(array_get($service, 'verb', array_get($service, 'method', Verbs::POST)));
+            $params = array_get($service, 'parameter', array_get($service, 'parameters', []));
+            $payload = array_get($service, 'payload', []);
+            $payload['message'] = $m->payload;
 
-                // Retrieve service information
-                $name = array_get($service, 'name');
-                $resource = array_get($service, 'resource');
-                $verb = strtoupper(array_get($service, 'verb', array_get($service, 'method', Verbs::POST)));
-                $params = array_get($service, 'parameter', array_get($service, 'parameters', []));
-                $payload = array_get($service, 'payload', []);
-                $payload['message'] = $m->payload;
-
-                /** @var \DreamFactory\Core\Utility\ServiceResponse $rs */
-                $rs = ServiceManager::handleRequest($name, $verb, $resource, $params, [], $payload);
-                $content = $rs->getContent();
-                $content = (is_array($content)) ? json_encode($content) : $content;
-                Log::debug('[MQTT] Trigger response: ' . $content);
-            }
+            /** @var \DreamFactory\Core\Utility\ServiceResponse $rs */
+            $rs = ServiceManager::handleRequest($name, $verb, $resource, $params, [], $payload);
+            $content = $rs->getContent();
+            $content = (is_array($content)) ? json_encode($content) : $content;
+            Log::debug('[MQTT] Trigger response: ' . $content);
         });
         $client->connect($this->client->getHost(), $this->client->getPort());
 
         foreach ($topics as $t) {
             $client->subscribe($t['topic'], 0);
         }
-        $client->subscribe(static::TERMINATOR, 0);
+        //$client->subscribe(static::TERMINATOR, 0);
         $this->execute($client);
     }
 
@@ -100,6 +100,12 @@ class Subscribe implements ShouldQueue
         while (1) {
             try {
                 $client->loop();
+                if(Cache::get(static::TERMINATOR, false) === true){
+                    Log::info('[MQTT] Terminate subscription signal received. Ending subscription job.');
+                    Cache::forever(static::TERMINATOR, false);
+
+                    return;
+                }
             } catch (LoopException $e) {
                 $client->disconnect();
                 unset($client);
