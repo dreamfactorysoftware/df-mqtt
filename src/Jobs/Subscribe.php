@@ -64,7 +64,7 @@ class Subscribe implements ShouldQueue
         $client->onMessage(function ($m) use ($topics){
             Log::debug('[MQTT] Received message on topic: ' . $m->topic . ' with payload ' . $m->payload);
 
-            $service = array_by_key_value($topics, 'topic', $m->topic, 'service');
+            $service = static::array_by_key_value($topics, 'topic', $m->topic, 'service');
             Log::debug('[MQTT] Triggering service: ' . json_encode($service));
 
             // Retrieve service information
@@ -88,6 +88,21 @@ class Subscribe implements ShouldQueue
         }
         //$client->subscribe(static::TERMINATOR, 0);
         $this->execute($client);
+    }
+    
+    private static function array_by_key_value($array, $key, $value, $returnKey = null)
+    {
+        foreach ($array as $item) {
+            if ($item[$key] === $value) {
+                if ($returnKey) {
+                    return $item[$returnKey];
+                } else {
+                    return $item;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
