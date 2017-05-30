@@ -70,7 +70,7 @@ class Subscribe implements ShouldQueue
             // Retrieve service information
             $name = array_get($service, 'name');
             $resource = array_get($service, 'resource');
-            $verb = strtoupper(array_get($service, 'verb', array_get($service, 'method', Verbs::POST)));
+            $verb = strtoupper(array_get($service, 'verb', array_get($service, 'method', 'POST')));
             $params = array_get($service, 'parameter', array_get($service, 'parameters', []));
             $payload = array_get($service, 'payload', []);
             $payload['message'] = $m->payload;
@@ -86,10 +86,10 @@ class Subscribe implements ShouldQueue
         foreach ($topics as $t) {
             $client->subscribe($t['topic'], 0);
         }
-        //$client->subscribe(static::TERMINATOR, 0);
+
         $this->execute($client);
     }
-    
+
     private static function array_by_key_value($array, $key, $value, $returnKey = null)
     {
         foreach ($array as $item) {
