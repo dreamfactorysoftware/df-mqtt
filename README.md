@@ -1,3 +1,3 @@
 # df-mqtt
 
-MQTT client for DreamFactory [Experimental]
+MQTT client for DreamFactory
