@@ -42,9 +42,6 @@ class Subscribe implements ShouldQueue
         $this->topics = $topics;
     }
 
-    /**
-     * @return array
-     */
     public function getTopics()
     {
         return $this->topics;
@@ -64,13 +61,13 @@ class Subscribe implements ShouldQueue
         $client->onMessage(function ($m) use ($topics){
             Log::debug('[MQTT] Received message on topic: ' . $m->topic . ' with payload ' . $m->payload);
 
-            $service = static::array_by_key_value($topics, 'topic', $m->topic, 'service');
+            $service = array_by_key_value($topics, 'topic', $m->topic, 'service');
             Log::debug('[MQTT] Triggering service: ' . json_encode($service));
 
             // Retrieve service information
             $name = array_get($service, 'name');
             $resource = array_get($service, 'resource');
-            $verb = strtoupper(array_get($service, 'verb', array_get($service, 'method', 'POST')));
+            $verb = strtoupper(array_get($service, 'verb', array_get($service, 'method', Verbs::POST)));
             $params = array_get($service, 'parameter', array_get($service, 'parameters', []));
             $payload = array_get($service, 'payload', []);
             $payload['message'] = $m->payload;
@@ -86,23 +83,8 @@ class Subscribe implements ShouldQueue
         foreach ($topics as $t) {
             $client->subscribe($t['topic'], 0);
         }
-
+        //$client->subscribe(static::TERMINATOR, 0);
         $this->execute($client);
-    }
-
-    private static function array_by_key_value($array, $key, $value, $returnKey = null)
-    {
-        foreach ($array as $item) {
-            if ($item[$key] === $value) {
-                if ($returnKey) {
-                    return $item[$returnKey];
-                } else {
-                    return $item;
-                }
-            }
-        }
-
-        return null;
     }
 
     /**
