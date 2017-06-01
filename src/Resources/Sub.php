@@ -111,11 +111,11 @@ class Sub extends BaseRestResource
                 return false;
             }
             if (is_array($pd['service'])) {
-                if (!isset($pd['service']['name'])) {
+                if (!isset($pd['service']['endpoint'])) {
                     return false;
                 }
             } else {
-                $payload[$i]['service'] = ['name' => $pd['service']];
+                $payload[$i]['service'] = ['endpoint' => $pd['service']];
             }
         }
 
@@ -176,19 +176,21 @@ class Sub extends BaseRestResource
                                     'service' => [
                                         'type'       => 'object',
                                         'properties' => [
-                                            'name'      => [
+                                            'endpoint'      => [
                                                 'type'        => 'string',
-                                                'description' => 'service name'
-                                            ],
-                                            'resource'  => [
-                                                'type'        => 'string',
-                                                'description' => 'service resource name'
+                                                'description' => 'Internal DreamFactory Endpoint. Ex: api/v2/system/role'
                                             ],
                                             'verb'      => [
                                                 'type'        => 'string',
                                                 'description' => 'GET, POST, PATCH, PUT, DELETE'
                                             ],
                                             'parameter' => [
+                                                'type'  => 'array',
+                                                'items' => [
+                                                    "{name}" => "{value}"
+                                                ]
+                                            ],
+                                            'header' => [
                                                 'type'  => 'array',
                                                 'items' => [
                                                     "{name}" => "{value}"
@@ -232,13 +234,15 @@ class Sub extends BaseRestResource
                                     'service' => [
                                         'type'       => 'object',
                                         'properties' => [
-                                            'name'      => [
+                                            'endpoint'      => [
                                                 'type'        => 'string',
-                                                'description' => 'service name'
+                                                'description' => 'Internal DreamFactory Endpoint. Ex: api/v2/system/role'
                                             ],
-                                            'resource'  => [
-                                                'type'        => 'string',
-                                                'description' => 'service resource name'
+                                            'header' => [
+                                                'type'  => 'array',
+                                                'items' => [
+                                                    "{name}" => "{value}"
+                                                ]
                                             ],
                                             'verb'      => [
                                                 'type'        => 'string',
