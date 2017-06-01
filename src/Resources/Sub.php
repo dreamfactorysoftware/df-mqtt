@@ -1,8 +1,9 @@
 <?php
 
-namespace a15lam\MQTT\Resources;
+namespace DreamFactory\Core\MQTT\Resources;
 
-use a15lam\MQTT\Jobs\Subscribe;
+use DreamFactory\Core\Exceptions\ForbiddenException;
+use DreamFactory\Core\MQTT\Jobs\Subscribe;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -19,7 +20,7 @@ class Sub extends BaseRestResource
     /** A resource identifier used in swagger doc. */
     const RESOURCE_IDENTIFIER = 'name';
 
-    /** @var \a15lam\MQTT\Services\MQTT */
+    /** @var \DreamFactory\Core\MQTT\Services\MQTT */
     protected $parent;
 
     /**
@@ -48,7 +49,7 @@ class Sub extends BaseRestResource
 
             return ['success' => true, 'job_id' => $jobId];
         } else {
-            throw new BadRequestException(
+            throw new ForbiddenException(
                 'System is currently running a subscription job with id ' . $job . '. ' .
                 'Please terminate the current process before subscribing to new topic(s)'
             );
@@ -64,7 +65,7 @@ class Sub extends BaseRestResource
             $job = DB::table('jobs')
                 ->where('payload', 'like', "%Subscribe%")
                 ->where('payload', 'like', "%MQTT%")
-                ->where('payload', 'like', "%a15lam%")
+                ->where('payload', 'like', "%DreamFactory%")
                 ->where('attempts', 1)
                 ->first();
 
@@ -132,7 +133,7 @@ class Sub extends BaseRestResource
         $jobs = DB::table('jobs')
             ->where('payload', 'like', "%Subscribe%")
             ->where('payload', 'like', "%MQTT%")
-            ->where('payload', 'like', "%a15lam%")
+            ->where('payload', 'like', "%DreamFactory%")
             ->get(['id', 'attempts']);
 
         foreach ($jobs as $job) {

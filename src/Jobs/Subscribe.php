@@ -1,6 +1,6 @@
 <?php
 
-namespace a15lam\MQTT\Jobs;
+namespace DreamFactory\Core\MQTT\Jobs;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
@@ -8,8 +8,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use DreamFactory\Core\Enums\Verbs;
-use a15lam\MQTT\Exceptions\LoopException;
-use a15lam\MQTT\Components\MosquittoClient;
+use DreamFactory\Core\MQTT\Exceptions\LoopException;
+use DreamFactory\Core\MQTT\Components\MosquittoClient;
 use ServiceManager;
 use Log;
 use Cache;
@@ -21,7 +21,7 @@ class Subscribe implements ShouldQueue
     /** Topic for subscription terminator */
     const TERMINATOR = 'DF:MQTT:TERMINATE';
 
-    /** @var \a15lam\MQTT\Components\MosquittoClient */
+    /** @var \DreamFactory\Core\MQTT\Components\MosquittoClient */
     protected $client;
 
     /** @var array topic -> service mapping */

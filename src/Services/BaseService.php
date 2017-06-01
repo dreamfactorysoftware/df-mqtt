@@ -1,6 +1,6 @@
 <?php
 
-namespace a15lam\MQTT\Services;
+namespace DreamFactory\Core\MQTT\Services;
 
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\Session;
@@ -8,7 +8,7 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 
 abstract class BaseService extends BaseRestService
 {
-    /** @var  \a15lam\MQTT\Components\MosquittoClient */
+    /** @var  \DreamFactory\Core\MQTT\Components\MosquittoClient */
     protected $client;
 
     public function __construct(array $settings)

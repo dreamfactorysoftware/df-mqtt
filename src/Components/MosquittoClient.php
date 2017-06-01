@@ -1,9 +1,9 @@
 <?php
 
-namespace a15lam\MQTT\Components;
+namespace DreamFactory\Core\MQTT\Components;
 
-use a15lam\MQTT\Exceptions\LoopException;
-use a15lam\MQTT\Jobs\Subscribe;
+use DreamFactory\Core\MQTT\Exceptions\LoopException;
+use DreamFactory\Core\MQTT\Jobs\Subscribe;
 use Log;
 
 class MosquittoClient

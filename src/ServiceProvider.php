@@ -1,9 +1,9 @@
 <?php
 
-namespace a15lam\MQTT;
+namespace DreamFactory\Core\MQTT;
 
-use a15lam\MQTT\Models\MQTTConfig;
-use a15lam\MQTT\Services\MQTT;
+use DreamFactory\Core\MQTT\Models\MQTTConfig;
+use DreamFactory\Core\MQTT\Services\MQTT;
 use DreamFactory\Core\Services\ServiceManager;
 use DreamFactory\Core\Services\ServiceType;
 use DreamFactory\Core\Components\ServiceDocBuilder;
