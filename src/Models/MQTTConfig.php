@@ -1,6 +1,6 @@
 <?php
 
-namespace a15lam\MQTT\Models;
+namespace DreamFactory\Core\MQTT\Models;
 
 use DreamFactory\Core\Models\BaseServiceConfigModel;
 

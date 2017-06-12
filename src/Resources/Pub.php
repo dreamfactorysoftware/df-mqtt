@@ -1,6 +1,6 @@
 <?php
 
-namespace a15lam\MQTT\Resources;
+namespace DreamFactory\Core\MQTT\Resources;
 
 use DreamFactory\Core\Resources\BaseRestResource;
 
@@ -11,7 +11,7 @@ class Pub extends BaseRestResource
     /** A resource identifier used in swagger doc. */
     const RESOURCE_IDENTIFIER = 'name';
 
-    /** @var \a15lam\MQTT\Services\MQTT */
+    /** @var \DreamFactory\Core\MQTT\Services\MQTT */
     protected $parent;
 
     /**

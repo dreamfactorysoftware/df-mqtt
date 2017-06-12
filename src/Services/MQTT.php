@@ -1,10 +1,10 @@
 <?php
 
-namespace a15lam\MQTT\Services;
+namespace DreamFactory\Core\MQTT\Services;
 
-use a15lam\MQTT\Components\MosquittoClient;
-use a15lam\MQTT\Resources\Pub;
-use a15lam\MQTT\Resources\Sub;
+use DreamFactory\Core\MQTT\Components\MosquittoClient;
+use DreamFactory\Core\MQTT\Resources\Pub;
+use DreamFactory\Core\MQTT\Resources\Sub;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\Session;
 
@@ -54,7 +54,7 @@ class MQTT extends BaseService
     /**
      * Returns the client component
      *
-     * @return \a15lam\MQTT\Components\MosquittoClient
+     * @return \DreamFactory\Core\MQTT\Components\MosquittoClient
      */
     public function getClient()
     {

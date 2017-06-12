@@ -1,6 +1,6 @@
 <?php
 
-namespace a15lam\MQTT\Jobs;
+namespace DreamFactory\Core\MQTT\Jobs;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
@@ -8,8 +8,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use DreamFactory\Core\Enums\Verbs;
-use a15lam\MQTT\Exceptions\LoopException;
-use a15lam\MQTT\Components\MosquittoClient;
+use DreamFactory\Core\MQTT\Exceptions\LoopException;
+use DreamFactory\Core\MQTT\Components\MosquittoClient;
 use ServiceManager;
 use Log;
 use Cache;
@@ -21,7 +21,7 @@ class Subscribe implements ShouldQueue
     /** Topic for subscription terminator */
     const TERMINATOR = 'DF:MQTT:TERMINATE';
 
-    /** @var \a15lam\MQTT\Components\MosquittoClient */
+    /** @var \DreamFactory\Core\MQTT\Components\MosquittoClient */
     protected $client;
 
     /** @var array topic -> service mapping */
@@ -65,15 +65,19 @@ class Subscribe implements ShouldQueue
             Log::debug('[MQTT] Triggering service: ' . json_encode($service));
 
             // Retrieve service information
-            $name = array_get($service, 'name');
-            $resource = array_get($service, 'resource');
+            $endpoint = trim(array_get($service, 'endpoint'), '/');
+            $endpoint = str_replace('api/v2/', '', $endpoint);
+            $endpointArray = explode('/', $endpoint);
+            $serviceName = array_get($endpointArray, 0);
+            $resource = array_get($endpointArray, 1);
             $verb = strtoupper(array_get($service, 'verb', array_get($service, 'method', Verbs::POST)));
             $params = array_get($service, 'parameter', array_get($service, 'parameters', []));
+            $header = array_get($service, 'header', array_get($service, 'headers', []));
             $payload = array_get($service, 'payload', []);
             $payload['message'] = $m->payload;
 
             /** @var \DreamFactory\Core\Utility\ServiceResponse $rs */
-            $rs = ServiceManager::handleRequest($name, $verb, $resource, $params, [], $payload);
+            $rs = ServiceManager::handleRequest($serviceName, $verb, $resource, $params, $header, $payload);
             $content = $rs->getContent();
             $content = (is_array($content)) ? json_encode($content) : $content;
             Log::debug('[MQTT] Trigger response: ' . $content);

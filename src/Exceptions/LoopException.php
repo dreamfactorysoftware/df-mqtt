@@ -1,6 +1,6 @@
 <?php
 
-namespace a15lam\MQTT\Exceptions;
+namespace DreamFactory\Core\MQTT\Exceptions;
 
 use Throwable;
 use Exception;
