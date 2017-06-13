@@ -42,15 +42,13 @@ class Sub extends BaseRestResource
             throw new BadRequestException('Bad payload supplied. Could not find proper topic and service information in the payload.');
         }
 
-        $job = $this->isJobRunning();
-
-        if ($job === false) {
+        if (!$this->isJobRunning()) {
             $jobId = $this->parent->getClient()->subscribe($payload);
 
             return ['success' => true, 'job_id' => $jobId];
         } else {
             throw new ForbiddenException(
-                'System is currently running a subscription job with id ' . $job . '. ' .
+                'System is currently running a subscription job. ' .
                 'Please terminate the current process before subscribing to new topic(s)'
             );
         }
@@ -62,18 +60,12 @@ class Sub extends BaseRestResource
     protected function handleGET()
     {
         if (config('queue.default') == 'database') {
-            $job = DB::table('jobs')
-                ->where('payload', 'like', "%Subscribe%")
-                ->where('payload', 'like', "%MQTT%")
-                ->where('payload', 'like', "%DreamFactory%")
-                ->where('attempts', 1)
-                ->first();
+            $subscription = Cache::get(Subscribe::SUBSCRIPTION);
 
-            if (!empty($job)) {
-                $paylaod = json_decode($job->payload, true);
-                $command = unserialize(array_get($paylaod, 'data.command'));
+            if (!empty($subscription)) {
+                $payload = json_decode($subscription, true);
 
-                return $command->getTopics();
+                return $payload;
             } else {
                 throw new NotFoundException('Did not find any subscribed topic(s). Subscription job may not be running.');
             }
@@ -130,6 +122,12 @@ class Sub extends BaseRestResource
      */
     protected function isJobRunning()
     {
+        $subscription = Cache::get(Subscribe::SUBSCRIPTION);
+
+        if (!empty($subscription)) {
+            return true;
+        }
+
         $jobs = DB::table('jobs')
             ->where('payload', 'like', "%Subscribe%")
             ->where('payload', 'like', "%MQTT%")
@@ -138,7 +136,7 @@ class Sub extends BaseRestResource
 
         foreach ($jobs as $job) {
             if ($job->attempts == 1) {
-                return $job->id;
+                return true;
             } elseif ($job->attempts == 0) {
                 throw new InternalServerErrorException('Unprocessed job found in the queue. Please make sure queue worker is running');
             }
@@ -176,7 +174,7 @@ class Sub extends BaseRestResource
                                     'service' => [
                                         'type'       => 'object',
                                         'properties' => [
-                                            'endpoint'      => [
+                                            'endpoint'  => [
                                                 'type'        => 'string',
                                                 'description' => 'Internal DreamFactory Endpoint. Ex: api/v2/system/role'
                                             ],
@@ -190,7 +188,7 @@ class Sub extends BaseRestResource
                                                     "{name}" => "{value}"
                                                 ]
                                             ],
-                                            'header' => [
+                                            'header'    => [
                                                 'type'  => 'array',
                                                 'items' => [
                                                     "{name}" => "{value}"
@@ -234,11 +232,11 @@ class Sub extends BaseRestResource
                                     'service' => [
                                         'type'       => 'object',
                                         'properties' => [
-                                            'endpoint'      => [
+                                            'endpoint'  => [
                                                 'type'        => 'string',
                                                 'description' => 'Internal DreamFactory Endpoint. Ex: api/v2/system/role'
                                             ],
-                                            'header' => [
+                                            'header'    => [
                                                 'type'  => 'array',
                                                 'items' => [
                                                     "{name}" => "{value}"

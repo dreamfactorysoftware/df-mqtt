@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\MQTT\Jobs;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Queue\MaxAttemptsExceededException;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -20,6 +21,8 @@ class Subscribe implements ShouldQueue
 
     /** Topic for subscription terminator */
     const TERMINATOR = 'DF:MQTT:TERMINATE';
+
+    const SUBSCRIPTION = 'DF:MQTT:SUBSCRIPTION';
 
     /** @var \DreamFactory\Core\MQTT\Components\MosquittoClient */
     protected $client;
@@ -52,43 +55,52 @@ class Subscribe implements ShouldQueue
      */
     public function handle()
     {
-        $client = MosquittoClient::client($this->client->getConfig(time()));
         $topics = $this->topics;
+        $topicsJson = json_encode($topics, JSON_UNESCAPED_SLASHES);
+        Cache::forever(static::SUBSCRIPTION, $topicsJson);
 
-        $client->onConnect(function (){
-            Log::info('[MQTT] Connected to MQTT broker for subscription.');
-        });
-        $client->onMessage(function ($m) use ($topics){
-            Log::debug('[MQTT] Received message on topic: ' . $m->topic . ' with payload ' . $m->payload);
+        try {
+            $client = MosquittoClient::client($this->client->getConfig(time()));
 
-            $service = array_by_key_value($topics, 'topic', $m->topic, 'service');
-            Log::debug('[MQTT] Triggering service: ' . json_encode($service));
+            $client->onConnect(function (){
+                Log::info('[MQTT] Connected to MQTT broker for subscription.');
+            });
+            $client->onMessage(function ($m) use ($topics){
+                Log::debug('[MQTT] Received message on topic: ' . $m->topic . ' with payload ' . $m->payload);
 
-            // Retrieve service information
-            $endpoint = trim(array_get($service, 'endpoint'), '/');
-            $endpoint = str_replace('api/v2/', '', $endpoint);
-            $endpointArray = explode('/', $endpoint);
-            $serviceName = array_get($endpointArray, 0);
-            $resource = array_get($endpointArray, 1);
-            $verb = strtoupper(array_get($service, 'verb', array_get($service, 'method', Verbs::POST)));
-            $params = array_get($service, 'parameter', array_get($service, 'parameters', []));
-            $header = array_get($service, 'header', array_get($service, 'headers', []));
-            $payload = array_get($service, 'payload', []);
-            $payload['message'] = $m->payload;
+                $service = array_by_key_value($topics, 'topic', $m->topic, 'service');
+                Log::debug('[MQTT] Triggering service: ' . json_encode($service));
 
-            /** @var \DreamFactory\Core\Utility\ServiceResponse $rs */
-            $rs = ServiceManager::handleRequest($serviceName, $verb, $resource, $params, $header, $payload);
-            $content = $rs->getContent();
-            $content = (is_array($content)) ? json_encode($content) : $content;
-            Log::debug('[MQTT] Trigger response: ' . $content);
-        });
-        $client->connect($this->client->getHost(), $this->client->getPort());
+                // Retrieve service information
+                $endpoint = trim(array_get($service, 'endpoint'), '/');
+                $endpoint = str_replace('api/v2/', '', $endpoint);
+                $endpointArray = explode('/', $endpoint);
+                $serviceName = array_get($endpointArray, 0);
+                $resource = array_get($endpointArray, 1);
+                $verb = strtoupper(array_get($service, 'verb', array_get($service, 'method', Verbs::POST)));
+                $params = array_get($service, 'parameter', array_get($service, 'parameters', []));
+                $header = array_get($service, 'header', array_get($service, 'headers', []));
+                $payload = array_get($service, 'payload', []);
+                $payload['message'] = $m->payload;
 
-        foreach ($topics as $t) {
-            $client->subscribe($t['topic'], 0);
+                /** @var \DreamFactory\Core\Utility\ServiceResponse $rs */
+                $rs = ServiceManager::handleRequest($serviceName, $verb, $resource, $params, $header, $payload);
+                $content = $rs->getContent();
+                $content = (is_array($content)) ? json_encode($content) : $content;
+                Log::debug('[MQTT] Trigger response: ' . $content);
+            });
+            $client->connect($this->client->getHost(), $this->client->getPort());
+
+            foreach ($topics as $t) {
+                $client->subscribe($t['topic'], 0);
+            }
+
+            $this->execute($client);
+        } catch (\Exception $e) {
+            Log::error('[MQTT] Exception occurred. Terminating subscription. ' . $e->getMessage());
+            Cache::forget(static::SUBSCRIPTION);
+            Cache::forever(static::TERMINATOR, false);
         }
-        //$client->subscribe(static::TERMINATOR, 0);
-        $this->execute($client);
     }
 
     /**
@@ -101,11 +113,12 @@ class Subscribe implements ShouldQueue
         while (1) {
             try {
                 $client->loop();
-                if(Cache::get(static::TERMINATOR, false) === true){
+                if (Cache::get(static::TERMINATOR, false) === true) {
                     Log::info('[MQTT] Terminate subscription signal received. Ending subscription job.');
                     Cache::forever(static::TERMINATOR, false);
+                    Cache::forget(static::SUBSCRIPTION);
 
-                    return;
+                    throw new LoopException('Terminated on demand.');
                 }
             } catch (LoopException $e) {
                 $client->disconnect();
@@ -113,6 +126,15 @@ class Subscribe implements ShouldQueue
 
                 return;
             }
+        }
+    }
+
+    public function failed(\Exception $exception)
+    {
+        if (!$exception instanceof MaxAttemptsExceededException) {
+            Log::debug("[MQTT] Job failed. " . $exception->getMessage());
+            Cache::forget(static::SUBSCRIPTION);
+            Cache::forever(static::TERMINATOR, false);
         }
     }
 }
