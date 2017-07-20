@@ -45,6 +45,9 @@ class Subscribe implements ShouldQueue
         $this->topics = $topics;
     }
 
+    /**
+     * @return array
+     */
     public function getTopics()
     {
         return $this->topics;
@@ -129,6 +132,9 @@ class Subscribe implements ShouldQueue
         }
     }
 
+    /**
+     * @param \Exception $exception
+     */
     public function failed(\Exception $exception)
     {
         if (!$exception instanceof MaxAttemptsExceededException) {
