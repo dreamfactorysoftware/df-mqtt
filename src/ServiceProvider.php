@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\MQTT;
 
+use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\MQTT\Models\MQTTConfig;
 use DreamFactory\Core\MQTT\Services\MQTT;
 use DreamFactory\Core\Services\ServiceManager;
@@ -21,7 +22,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
                     'name'            => 'mqtt',
                     'label'           => 'MQTT Client',
                     'description'     => 'MQTT Client based on Mosquitto',
-                    'group'           => 'IOT',
+                    'group'           => ServiceTypeGroups::IOT,
                     'config_handler'  => MQTTConfig::class,
                     'default_api_doc' => function ($service){
                         return $this->buildServiceDoc($service->id, MQTT::getApiDocInfo($service));
