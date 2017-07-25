@@ -58,6 +58,7 @@ class Pub extends BaseRestResource
                     'description' => 'Content - Message and topic to publish to',
                     'schema'      => [
                         'type'       => 'object',
+                        'required'   => ['topic', 'message'],
                         'properties' => [
                             'topic'   => [
                                 'type'        => 'string',

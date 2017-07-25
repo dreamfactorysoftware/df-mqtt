@@ -169,14 +169,16 @@ class Sub extends BaseRestResource
                             'type'  => 'array',
                             'items' => [
                                 'type'       => 'object',
+                                'required'   => ['topic', 'service'],
                                 'properties' => [
                                     'topic'   => ['type' => 'string'],
                                     'service' => [
                                         'type'       => 'object',
+                                        'required'   => ['endpoint'],
                                         'properties' => [
                                             'endpoint'  => [
                                                 'type'        => 'string',
-                                                'description' => 'Internal DreamFactory Endpoint. Ex: api/v2/system/role'
+                                                'description' => 'Internal DreamFactory Endpoint. Ex: system/role'
                                             ],
                                             'verb'      => [
                                                 'type'        => 'string',
@@ -227,14 +229,16 @@ class Sub extends BaseRestResource
                             'type'  => 'array',
                             'items' => [
                                 'type'       => 'object',
+                                'required'   => ['topic', 'service'],
                                 'properties' => [
                                     'topic'   => ['type' => 'string'],
                                     'service' => [
                                         'type'       => 'object',
+                                        'required'   => ['endpoint'],
                                         'properties' => [
                                             'endpoint'  => [
                                                 'type'        => 'string',
-                                                'description' => 'Internal DreamFactory Endpoint. Ex: api/v2/system/role'
+                                                'description' => 'Internal DreamFactory Endpoint. Ex: system/role'
                                             ],
                                             'header'    => [
                                                 'type'  => 'array',
