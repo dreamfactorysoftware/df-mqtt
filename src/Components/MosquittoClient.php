@@ -34,11 +34,11 @@ class MosquittoClient
     {
         return [
             'client_id' => $this->clientId . $clientIdSuffix,
-            'host' => $this->host,
-            'port' => $this->port,
-            'username' => $this->username,
-            'password' => $this->password,
-            'ca_path' => $this->caPath
+            'host'      => $this->host,
+            'port'      => $this->port,
+            'username'  => $this->username,
+            'password'  => $this->password,
+            'ca_path'   => $this->caPath
         ];
     }
 
@@ -62,7 +62,7 @@ class MosquittoClient
         if (!empty($username) && !empty($password)) {
             $client->setCredentials($username, $password);
         }
-        if(!empty($caPath)){
+        if (!empty($caPath)) {
             $client->setTlsCertificates($caPath);
         }
 
@@ -77,10 +77,10 @@ class MosquittoClient
             Log::debug('[MQTT] Now publishing message: ' . $msg . ' using topic: ' . $topic);
             $client->publish($topic, $msg);
         });
-        $client->onMessage(function($m) use ($topic, $msg){
+        $client->onMessage(function ($m) use ($topic, $msg){
             Log::info('[MQTT] Message received.');
             Log::debug('[MQTT] Received message on topic: ' . $m->topic . ' with payload ' . $m->payload);
-            if($topic === $m->topic && $msg === $m->payload){
+            if ($topic === $m->topic && $msg === $m->payload) {
                 throw new LoopException('Publish Completed.');
             }
         });
@@ -95,6 +95,7 @@ class MosquittoClient
             } catch (LoopException $e) {
                 $client->disconnect();
                 unset($client);
+
                 return;
             }
         }
