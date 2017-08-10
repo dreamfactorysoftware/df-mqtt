@@ -7,12 +7,9 @@ use DreamFactory\Core\MQTT\Models\MQTTConfig;
 use DreamFactory\Core\MQTT\Services\MQTT;
 use DreamFactory\Core\Services\ServiceManager;
 use DreamFactory\Core\Services\ServiceType;
-use DreamFactory\Core\Components\ServiceDocBuilder;
 
 class ServiceProvider extends \Illuminate\Support\ServiceProvider
 {
-    use ServiceDocBuilder;
-
     public function register()
     {
         // Add our service types.
@@ -24,9 +21,6 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
                     'description'     => 'MQTT Client based on Mosquitto',
                     'group'           => ServiceTypeGroups::IOT,
                     'config_handler'  => MQTTConfig::class,
-                    'default_api_doc' => function ($service){
-                        return $this->buildServiceDoc($service->id, MQTT::getApiDocInfo($service));
-                    },
                     'factory'         => function ($config){
                         return new MQTT($config);
                     },
