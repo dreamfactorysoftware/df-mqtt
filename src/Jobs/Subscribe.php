@@ -87,7 +87,7 @@ class Subscribe implements ShouldQueue
                 $payload['message'] = $m->payload;
 
                 /** @var \DreamFactory\Core\Utility\ServiceResponse $rs */
-                $rs = ServiceManager::handleRequest($serviceName, $verb, $resource, $params, $header, $payload);
+                $rs = ServiceManager::handleRequest($serviceName, $verb, $resource, $params, $header, $payload, null, false);
                 $content = $rs->getContent();
                 $content = (is_array($content)) ? json_encode($content) : $content;
                 Log::debug('[MQTT] Trigger response: ' . $content);
