@@ -37,57 +37,37 @@ class Pub extends BaseRestResource
     }
 
     /** {@inheritdoc} */
-    public static function getApiDocInfo($service, array $resource = [])
+    protected function getApiDocPaths()
     {
-        $base = parent::getApiDocInfo($service, $resource);
-        $serviceName = strtolower($service);
-        $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(array_get($resource, 'name', $class));
-        $path = '/' . $serviceName . '/' . $resourceName;
-        unset($base['paths'][$path]['get']);
-        $base['paths'][$path]['post'] = [
-            'tags'        => [$serviceName],
-            'summary'     => 'publishMessage() - Publish message',
-            'operationId' => 'publishMessage',
-            'consumes'    => ['application/json', 'application/xml'],
-            'produces'    => ['application/json', 'application/xml'],
-            'description' => 'Publishes message to MQTT broker',
-            'parameters'  => [
-                [
-                    'name'        => 'body',
-                    'description' => 'Content - Message and topic to publish to',
-                    'schema'      => [
-                        'type'       => 'object',
-                        'required'   => ['topic', 'message'],
-                        'properties' => [
-                            'topic'   => [
-                                'type'        => 'string',
-                                'description' => 'Topic name'
-                            ],
-                            'message' => [
-                                'type'        => 'string',
-                                'description' => 'Payload message'
-                            ],
-                        ]
+        $resourceName = strtolower($this->name);
+        $path = '/' . $resourceName;
+        $base = [
+            $path => [
+                'post' => [
+                    'summary'     => 'publishMessage() - Publish message',
+                    'operationId' => 'publishMessage',
+                    'description' => 'Publishes message to MQTT broker',
+                    'requestBody' => [
+                        'description' => 'Content - Message and topic to publish to',
+                        'schema'      => [
+                            'type'       => 'object',
+                            'required'   => ['topic', 'message'],
+                            'properties' => [
+                                'topic'   => [
+                                    'type'        => 'string',
+                                    'description' => 'Topic name'
+                                ],
+                                'message' => [
+                                    'type'        => 'string',
+                                    'description' => 'Payload message'
+                                ],
+                            ]
+                        ],
                     ],
-                    'in'          => 'body',
-                    'required'    => true
-                ]
-            ],
-            'responses'   => [
-                '200'     => [
-                    'description' => 'Success',
-                    'schema'      => [
-                        'type'       => 'object',
-                        'properties' => [
-                            'success' => ['type' => 'boolean']
-                        ]
-                    ]
+                    'responses'   => [
+                        '200' => ['$ref' => '#/components/responses/Success']
+                    ],
                 ],
-                'default' => [
-                    'description' => 'Error',
-                    'schema'      => ['$ref' => '#/definitions/Error']
-                ]
             ],
         ];
 
