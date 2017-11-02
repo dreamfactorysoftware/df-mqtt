@@ -39,29 +39,35 @@ class Pub extends BaseRestResource
     /** {@inheritdoc} */
     protected function getApiDocPaths()
     {
+        $service = $this->getServiceName();
+        $capitalized = camelize($service);
         $resourceName = strtolower($this->name);
         $path = '/' . $resourceName;
         $base = [
             $path => [
                 'post' => [
-                    'summary'     => 'publishMessage() - Publish message',
-                    'operationId' => 'publishMessage',
+                    'summary'     => 'Publish message',
                     'description' => 'Publishes message to MQTT broker',
+                    'operationId' => 'publish' . $capitalized . 'Message',
                     'requestBody' => [
                         'description' => 'Content - Message and topic to publish to',
-                        'schema'      => [
-                            'type'       => 'object',
-                            'required'   => ['topic', 'message'],
-                            'properties' => [
-                                'topic'   => [
-                                    'type'        => 'string',
-                                    'description' => 'Topic name'
+                        'content'     => [
+                            'application/json' => [
+                                'schema' => [
+                                    'type'       => 'object',
+                                    'required'   => ['topic', 'message'],
+                                    'properties' => [
+                                        'topic'   => [
+                                            'type'        => 'string',
+                                            'description' => 'Topic name'
+                                        ],
+                                        'message' => [
+                                            'type'        => 'string',
+                                            'description' => 'Payload message'
+                                        ],
+                                    ],
                                 ],
-                                'message' => [
-                                    'type'        => 'string',
-                                    'description' => 'Payload message'
-                                ],
-                            ]
+                            ],
                         ],
                     ],
                     'responses'   => [

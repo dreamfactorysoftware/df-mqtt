@@ -148,15 +148,17 @@ class Sub extends BaseRestResource
     /** {@inheritdoc} */
     protected function getApiDocPaths()
     {
+        $service = $this->getServiceName();
+        $capitalized = camelize($service);
         $resourceName = strtolower($this->name);
         $path = '/' . $resourceName;
 
         $base = [
             $path => [
                 'get'    => [
-                    'summary'     => 'getSubscriptionTopics() - Retrieves subscribed topic(s)',
-                    'operationId' => 'getSubscriptionTopics',
+                    'summary'     => 'Retrieves subscribed topic(s)',
                     'description' => 'Retrieves subscribed topic(s)',
+                    'operationId' => 'get' . $capitalized . 'SubscriptionTopics',
                     'responses'   => [
                         '200' => [
                             'description' => 'Success',
@@ -210,52 +212,56 @@ class Sub extends BaseRestResource
                     ],
                 ],
                 'post'   => [
-                    'summary'     => 'subscribeToTopics() - Subscribes to topic(s)',
-                    'operationId' => 'subscribeToTopics',
+                    'summary'     => 'Subscribes to topic(s)',
                     'description' => 'Subscribes to topic(s)',
+                    'operationId' => 'subscribeTo' . $capitalized . 'Topics',
                     'requestBody' => [
                         'description' => 'Device token to register',
-                        'schema'      => [
-                            'type'  => 'array',
-                            'items' => [
-                                'type'       => 'object',
-                                'required'   => ['topic', 'service'],
-                                'properties' => [
-                                    'topic'   => ['type' => 'string'],
-                                    'service' => [
+                        'content'     => [
+                            'application/json' => [
+                                'schema' => [
+                                    'type'  => 'array',
+                                    'items' => [
                                         'type'       => 'object',
-                                        'required'   => ['endpoint'],
+                                        'required'   => ['topic', 'service'],
                                         'properties' => [
-                                            'endpoint'  => [
-                                                'type'        => 'string',
-                                                'description' => 'Internal DreamFactory Endpoint. Ex: system/role'
+                                            'topic'   => ['type' => 'string'],
+                                            'service' => [
+                                                'type'       => 'object',
+                                                'required'   => ['endpoint'],
+                                                'properties' => [
+                                                    'endpoint'  => [
+                                                        'type'        => 'string',
+                                                        'description' => 'Internal DreamFactory Endpoint. Ex: system/role'
+                                                    ],
+                                                    'header'    => [
+                                                        'type'  => 'array',
+                                                        'items' => [
+                                                            "{name}" => "{value}"
+                                                        ]
+                                                    ],
+                                                    'verb'      => [
+                                                        'type'        => 'string',
+                                                        'description' => 'GET, POST, PATCH, PUT, DELETE'
+                                                    ],
+                                                    'parameter' => [
+                                                        'type'  => 'array',
+                                                        'items' => [
+                                                            "{name}" => "{value}"
+                                                        ]
+                                                    ],
+                                                    'payload'   => [
+                                                        'type'  => 'array',
+                                                        'items' => [
+                                                            "{name}" => "{value}"
+                                                        ]
+                                                    ],
+                                                ],
                                             ],
-                                            'header'    => [
-                                                'type'  => 'array',
-                                                'items' => [
-                                                    "{name}" => "{value}"
-                                                ]
-                                            ],
-                                            'verb'      => [
-                                                'type'        => 'string',
-                                                'description' => 'GET, POST, PATCH, PUT, DELETE'
-                                            ],
-                                            'parameter' => [
-                                                'type'  => 'array',
-                                                'items' => [
-                                                    "{name}" => "{value}"
-                                                ]
-                                            ],
-                                            'payload'   => [
-                                                'type'  => 'array',
-                                                'items' => [
-                                                    "{name}" => "{value}"
-                                                ]
-                                            ]
-                                        ]
+                                        ],
                                     ],
-                                ]
-                            ]
+                                ],
+                            ],
                         ],
                         'required'    => true
                     ],
@@ -264,9 +270,9 @@ class Sub extends BaseRestResource
                     ],
                 ],
                 'delete' => [
-                    'summary'     => 'terminatesSubscriptions() - Terminate subscriptions',
-                    'operationId' => 'terminatesSubscriptions',
+                    'summary'     => 'Terminate subscriptions',
                     'description' => 'Terminates subscriptions to all topic(s)',
+                    'operationId' => 'terminatesSubscriptionsTo' . $capitalized,
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/Success']
                     ],
