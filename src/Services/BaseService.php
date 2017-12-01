@@ -4,11 +4,10 @@ namespace DreamFactory\Core\MQTT\Services;
 
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
 
 abstract class BaseService extends BaseRestService
 {
-    /** @var  \DreamFactory\Core\MQTT\Components\MosquittoClient */
+    /** @var \DreamFactory\Core\Contracts\MessageQueueInterface */
     protected $client;
 
     public function __construct(array $settings)
@@ -17,12 +16,17 @@ abstract class BaseService extends BaseRestService
 
         $config = array_get($settings, 'config');
         Session::replaceLookups($config, true);
-
-        if (empty($config)) {
-            throw new InternalServerErrorException('No service configuration found for mqtt service.');
-        }
-
         $this->setClient($config);
+    }
+
+    /**
+     * Returns the client component
+     *
+     * @return \DreamFactory\Core\Contracts\MessageQueueInterface
+     */
+    public function getClient()
+    {
+        return $this->client;
     }
 
     protected abstract function setClient($config);

@@ -2,11 +2,14 @@
 
 namespace DreamFactory\Core\MQTT\Components;
 
+use DreamFactory\Core\Contracts\MessageQueueInterface;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\MQTT\Exceptions\LoopException;
 use DreamFactory\Core\MQTT\Jobs\Subscribe;
+use Illuminate\Contracts\Bus\Dispatcher;
 use Log;
 
-class MosquittoClient
+class MosquittoClient implements MessageQueueInterface
 {
     protected $host;
 
@@ -69,8 +72,20 @@ class MosquittoClient
         return $client;
     }
 
-    public function publish($topic, $msg)
+    /**
+     * @param array $data
+     *
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
+    public function publish(array $data)
     {
+        $topic = array_get($data, 'topic');
+        $msg = array_get($data, 'message', array_get($data, 'msg'));
+
+        if(empty($topic) || empty($msg)){
+            throw new InternalServerErrorException('No topic and/or message supplied for publishing.');
+        }
+
         $client = static::client($this->getConfig('-pub'));
         $client->onConnect(function () use ($client, $topic, $msg){
             Log::info('[MQTT] Connected to MQTT broker.');
@@ -101,10 +116,17 @@ class MosquittoClient
         }
     }
 
-    public function subscribe($payload)
+    /**
+     * @param array $payload
+     *
+     * @return \Illuminate\Foundation\Bus\PendingDispatch
+     */
+    public function subscribe(array $payload)
     {
         $job = new Subscribe($this, $payload);
-        $id = dispatch($job);
+        //$id = dispatch($job);
+        // dispatch right now
+        $id = app(Dispatcher::class)->dispatch($job);
 
         return $id;
     }

@@ -5,6 +5,7 @@ namespace DreamFactory\Core\MQTT\Services;
 use DreamFactory\Core\MQTT\Components\MosquittoClient;
 use DreamFactory\Core\MQTT\Resources\Pub;
 use DreamFactory\Core\MQTT\Resources\Sub;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 
 class MQTT extends BaseService
 {
@@ -26,9 +27,13 @@ class MQTT extends BaseService
      * Sets the client component
      *
      * @param array $config
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
     protected function setClient($config)
     {
+        if (empty($config)) {
+            throw new InternalServerErrorException('No service configuration found for MQTT service.');
+        }
         $host = array_get($config, 'host');
         $port = array_get($config, 'port');
         $clientId = array_get($config, 'client_id', 'df-client-' . time());
@@ -41,15 +46,5 @@ class MQTT extends BaseService
         }
 
         $this->client = new MosquittoClient($host, $port, $clientId, $username, $password, $capath);
-    }
-
-    /**
-     * Returns the client component
-     *
-     * @return \DreamFactory\Core\MQTT\Components\MosquittoClient
-     */
-    public function getClient()
-    {
-        return $this->client;
     }
 }

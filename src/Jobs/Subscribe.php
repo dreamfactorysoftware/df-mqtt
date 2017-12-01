@@ -33,6 +33,8 @@ class Subscribe implements ShouldQueue
     /** @var int job retry count */
     public $tries = 1;
 
+    public $timeout = 0;
+
     /**
      * Subscribe constructor.
      *
@@ -79,7 +81,8 @@ class Subscribe implements ShouldQueue
                 $endpoint = str_replace('api/v2/', '', $endpoint);
                 $endpointArray = explode('/', $endpoint);
                 $serviceName = array_get($endpointArray, 0);
-                $resource = array_get($endpointArray, 1);
+                array_shift($endpointArray);
+                $resource = implode('/', $endpointArray);
                 $verb = strtoupper(array_get($service, 'verb', array_get($service, 'method', Verbs::POST)));
                 $params = array_get($service, 'parameter', array_get($service, 'parameters', []));
                 $header = array_get($service, 'header', array_get($service, 'headers', []));

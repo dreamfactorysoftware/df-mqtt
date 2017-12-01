@@ -31,7 +31,7 @@ class Pub extends BaseRestResource
         $message = $this->request->input('msg', $this->request->input('message'));
         $message = (is_array($message)) ? json_encode($message) : (string)$message;
 
-        $this->parent->getClient()->publish($topic, $message);
+        $this->parent->getClient()->publish(['topic' => $topic, 'message' => $message]);
 
         return ['success' => true];
     }
