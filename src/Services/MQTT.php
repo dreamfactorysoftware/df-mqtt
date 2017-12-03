@@ -6,8 +6,9 @@ use DreamFactory\Core\MQTT\Components\MosquittoClient;
 use DreamFactory\Core\MQTT\Resources\Pub;
 use DreamFactory\Core\MQTT\Resources\Sub;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\PubSub\Services\PubSub;
 
-class MQTT extends BaseService
+class MQTT extends PubSub
 {
     /** @type array Service Resources */
     protected static $resources = [

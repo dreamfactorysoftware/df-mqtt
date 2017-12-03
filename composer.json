@@ -25,7 +25,7 @@
     "wiki":   "https://github.com/dreamfactorysoftware/df-mqtt/wiki"
   },
   "require":     {
-    "dreamfactory/df-core": "~0.13.0"
+    "dreamfactory/df-pubsub": "dev-develop as dev-master"
   },
   "autoload":    {
     "psr-4": {

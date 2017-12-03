@@ -2,12 +2,8 @@
 
 namespace DreamFactory\Core\MQTT\Jobs;
 
-use Illuminate\Bus\Queueable;
+use DreamFactory\Core\PubSub\Jobs\BaseSubscriber;
 use Illuminate\Queue\MaxAttemptsExceededException;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
 use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\MQTT\Exceptions\LoopException;
 use DreamFactory\Core\MQTT\Components\MosquittoClient;
@@ -15,44 +11,24 @@ use ServiceManager;
 use Log;
 use Cache;
 
-class Subscribe implements ShouldQueue
+class Subscribe extends BaseSubscriber
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    /** Topic for subscription terminator */
-    const TERMINATOR = 'DF:MQTT:TERMINATE';
-
-    const SUBSCRIPTION = 'DF:MQTT:SUBSCRIPTION';
-
-    /** @var \DreamFactory\Core\MQTT\Components\MosquittoClient */
-    protected $client;
-
-    /** @var array topic -> service mapping */
-    protected $topics;
-
-    /** @var int job retry count */
-    public $tries = 1;
-
-    public $timeout = 0;
-
-    /**
-     * Subscribe constructor.
-     *
-     * @param $client
-     * @param $topics
-     */
-    public function __construct($client, $topics)
+    public static function validatePayload(array $payload)
     {
-        $this->client = $client;
-        $this->topics = $topics;
-    }
+        foreach ($payload as $i => $pd) {
+            if (!isset($pd['topic']) || !isset($pd['service'])) {
+                return false;
+            }
+            if (is_array($pd['service'])) {
+                if (!isset($pd['service']['endpoint'])) {
+                    return false;
+                }
+            } else {
+                $payload[$i]['service'] = ['endpoint' => $pd['service']];
+            }
+        }
 
-    /**
-     * @return array
-     */
-    public function getTopics()
-    {
-        return $this->topics;
+        return true;
     }
 
     /**
@@ -60,7 +36,7 @@ class Subscribe implements ShouldQueue
      */
     public function handle()
     {
-        $topics = $this->topics;
+        $topics = $this->payload;
         $topicsJson = json_encode($topics, JSON_UNESCAPED_SLASHES);
         Cache::forever(static::SUBSCRIPTION, $topicsJson);
 

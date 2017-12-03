@@ -2,7 +2,7 @@
 
 namespace DreamFactory\Core\MQTT\Components;
 
-use DreamFactory\Core\Contracts\MessageQueueInterface;
+use DreamFactory\Core\PubSub\Contracts\MessageQueueInterface;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\MQTT\Exceptions\LoopException;
 use DreamFactory\Core\MQTT\Jobs\Subscribe;

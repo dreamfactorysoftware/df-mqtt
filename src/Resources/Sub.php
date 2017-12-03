@@ -8,29 +8,12 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
-use DreamFactory\Core\Resources\BaseRestResource;
 use Illuminate\Support\Arr;
 use DB;
 use Cache;
 
-class Sub extends BaseRestResource
+class Sub extends \DreamFactory\Core\PubSub\Resources\Sub
 {
-    const RESOURCE_NAME = 'sub';
-
-    /** A resource identifier used in swagger doc. */
-    const RESOURCE_IDENTIFIER = 'name';
-
-    /** @var \DreamFactory\Core\MQTT\Services\MQTT */
-    protected $parent;
-
-    /**
-     * {@inheritdoc}
-     */
-    protected static function getResourceIdentifier()
-    {
-        return static::RESOURCE_IDENTIFIER;
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -39,7 +22,7 @@ class Sub extends BaseRestResource
         $payload = $this->request->getPayloadData();
 
         if (static::validatePayload($payload) === false) {
-            throw new BadRequestException('Bad payload supplied. Could not find proper topic and service information in the payload.');
+            throw new BadRequestException('Bad payload supplied. Could not find proper topic and/or service information in the payload.');
         }
 
         if (!$this->isJobRunning()) {
@@ -98,20 +81,7 @@ class Sub extends BaseRestResource
             $payload = [$payload];
         }
 
-        foreach ($payload as $i => $pd) {
-            if (!isset($pd['topic']) || !isset($pd['service'])) {
-                return false;
-            }
-            if (is_array($pd['service'])) {
-                if (!isset($pd['service']['endpoint'])) {
-                    return false;
-                }
-            } else {
-                $payload[$i]['service'] = ['endpoint' => $pd['service']];
-            }
-        }
-
-        return true;
+        return Subscribe::validatePayload($payload);
     }
 
     /**
@@ -143,143 +113,5 @@ class Sub extends BaseRestResource
         }
 
         return false;
-    }
-
-    /** {@inheritdoc} */
-    protected function getApiDocPaths()
-    {
-        $service = $this->getServiceName();
-        $capitalized = camelize($service);
-        $resourceName = strtolower($this->name);
-        $path = '/' . $resourceName;
-
-        $base = [
-            $path => [
-                'get'    => [
-                    'summary'     => 'Retrieves subscribed topic(s)',
-                    'description' => 'Retrieves subscribed topic(s)',
-                    'operationId' => 'get' . $capitalized . 'SubscriptionTopics',
-                    'responses'   => [
-                        '200' => [
-                            'description' => 'Success',
-                            'content'     => [
-                                'application/json' => [
-                                    'schema' => [
-                                        'type'  => 'array',
-                                        'items' => [
-                                            'type'       => 'object',
-                                            'required'   => ['topic', 'service'],
-                                            'properties' => [
-                                                'topic'   => ['type' => 'string'],
-                                                'service' => [
-                                                    'type'       => 'object',
-                                                    'required'   => ['endpoint'],
-                                                    'properties' => [
-                                                        'endpoint'  => [
-                                                            'type'        => 'string',
-                                                            'description' => 'Internal DreamFactory Endpoint. Ex: system/role'
-                                                        ],
-                                                        'verb'      => [
-                                                            'type'        => 'string',
-                                                            'description' => 'GET, POST, PATCH, PUT, DELETE'
-                                                        ],
-                                                        'parameter' => [
-                                                            'type'  => 'array',
-                                                            'items' => [
-                                                                "{name}" => "{value}"
-                                                            ]
-                                                        ],
-                                                        'header'    => [
-                                                            'type'  => 'array',
-                                                            'items' => [
-                                                                "{name}" => "{value}"
-                                                            ]
-                                                        ],
-                                                        'payload'   => [
-                                                            'type'  => 'array',
-                                                            'items' => [
-                                                                "{name}" => "{value}"
-                                                            ]
-                                                        ]
-                                                    ]
-                                                ],
-                                            ]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ],
-                    ],
-                ],
-                'post'   => [
-                    'summary'     => 'Subscribes to topic(s)',
-                    'description' => 'Subscribes to topic(s)',
-                    'operationId' => 'subscribeTo' . $capitalized . 'Topics',
-                    'requestBody' => [
-                        'description' => 'Device token to register',
-                        'content'     => [
-                            'application/json' => [
-                                'schema' => [
-                                    'type'  => 'array',
-                                    'items' => [
-                                        'type'       => 'object',
-                                        'required'   => ['topic', 'service'],
-                                        'properties' => [
-                                            'topic'   => ['type' => 'string'],
-                                            'service' => [
-                                                'type'       => 'object',
-                                                'required'   => ['endpoint'],
-                                                'properties' => [
-                                                    'endpoint'  => [
-                                                        'type'        => 'string',
-                                                        'description' => 'Internal DreamFactory Endpoint. Ex: system/role'
-                                                    ],
-                                                    'header'    => [
-                                                        'type'  => 'array',
-                                                        'items' => [
-                                                            "{name}" => "{value}"
-                                                        ]
-                                                    ],
-                                                    'verb'      => [
-                                                        'type'        => 'string',
-                                                        'description' => 'GET, POST, PATCH, PUT, DELETE'
-                                                    ],
-                                                    'parameter' => [
-                                                        'type'  => 'array',
-                                                        'items' => [
-                                                            "{name}" => "{value}"
-                                                        ]
-                                                    ],
-                                                    'payload'   => [
-                                                        'type'  => 'array',
-                                                        'items' => [
-                                                            "{name}" => "{value}"
-                                                        ]
-                                                    ],
-                                                ],
-                                            ],
-                                        ],
-                                    ],
-                                ],
-                            ],
-                        ],
-                        'required'    => true
-                    ],
-                    'responses'   => [
-                        '200' => ['$ref' => '#/components/responses/Success']
-                    ],
-                ],
-                'delete' => [
-                    'summary'     => 'Terminate subscriptions',
-                    'description' => 'Terminates subscriptions to all topic(s)',
-                    'operationId' => 'terminatesSubscriptionsTo' . $capitalized,
-                    'responses'   => [
-                        '200' => ['$ref' => '#/components/responses/Success']
-                    ],
-                ]
-            ]
-        ];
-
-        return $base;
     }
 }
