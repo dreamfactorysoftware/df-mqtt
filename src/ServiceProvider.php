@@ -14,7 +14,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
     public function register()
     {
         // Add our service types.
-        $this->app->resolving('df.service', function (ServiceManager $df) {
+        $this->app->resolving('df.service', function (ServiceManager $df){
             $df->addType(
                 new ServiceType([
                     'name'                  => 'mqtt',
@@ -23,7 +23,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
                     'group'                 => ServiceTypeGroups::IOT,
                     'subscription_required' => LicenseLevel::SILVER,
                     'config_handler'        => MQTTConfig::class,
-                    'factory'               => function ($config) {
+                    'factory'               => function ($config){
                         return new MQTT($config);
                     },
                 ])

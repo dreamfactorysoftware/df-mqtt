@@ -28,6 +28,7 @@ class MQTT extends PubSub
      * Sets the client component
      *
      * @param array $config
+     *
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
     protected function setClient($config)

@@ -5,11 +5,7 @@ namespace DreamFactory\Core\MQTT\Resources;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\MQTT\Jobs\Subscribe;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Exceptions\NotImplementedException;
 use Illuminate\Support\Arr;
-use DB;
 use Cache;
 
 class Sub extends \DreamFactory\Core\PubSub\Resources\Sub
@@ -25,35 +21,16 @@ class Sub extends \DreamFactory\Core\PubSub\Resources\Sub
             throw new BadRequestException('Bad payload supplied. Could not find proper topic and/or service information in the payload.');
         }
 
-        if (!$this->isJobRunning()) {
-            $jobId = $this->parent->getClient()->subscribe($payload);
+        if (!$this->isJobRunning('MQTT')) {
+            $job = new Subscribe($this->parent->getClient(), $payload);
+            dispatch($job);
 
-            return ['success' => true, 'job_id' => $jobId];
+            return ['success' => true, 'job_count' => 1];
         } else {
             throw new ForbiddenException(
                 'System is currently running a subscription job. ' .
                 'Please terminate the current process before subscribing to new topic(s)'
             );
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function handleGET()
-    {
-        if (config('queue.default') == 'database') {
-            $subscription = Cache::get(Subscribe::SUBSCRIPTION);
-
-            if (!empty($subscription)) {
-                $payload = json_decode($subscription, true);
-
-                return $payload;
-            } else {
-                throw new NotFoundException('Did not find any subscribed topic(s). Subscription job may not be running.');
-            }
-        } else {
-            throw new NotImplementedException('Viewing subscribed topics is only supported for database queue at this time.');
         }
     }
 
@@ -82,36 +59,5 @@ class Sub extends \DreamFactory\Core\PubSub\Resources\Sub
         }
 
         return Subscribe::validatePayload($payload);
-    }
-
-    /**
-     * Checks to see if a subscription job is running.
-     *
-     * @return bool
-     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
-     */
-    protected function isJobRunning()
-    {
-        $subscription = Cache::get(Subscribe::SUBSCRIPTION);
-
-        if (!empty($subscription)) {
-            return true;
-        }
-
-        $jobs = DB::table('jobs')
-            ->where('payload', 'like', "%Subscribe%")
-            ->where('payload', 'like', "%MQTT%")
-            ->where('payload', 'like', "%DreamFactory%")
-            ->get(['id', 'attempts']);
-
-        foreach ($jobs as $job) {
-            if ($job->attempts == 1) {
-                return true;
-            } elseif ($job->attempts == 0) {
-                throw new InternalServerErrorException('Unprocessed job found in the queue. Please make sure queue worker is running');
-            }
-        }
-
-        return false;
     }
 }
