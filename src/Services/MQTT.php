@@ -10,6 +10,8 @@ use DreamFactory\Core\PubSub\Services\PubSub;
 
 class MQTT extends PubSub
 {
+    const QUEUE_TYPE = 'MQTT';
+
     /** @type array Service Resources */
     protected static $resources = [
         Pub::RESOURCE_NAME => [
@@ -48,5 +50,11 @@ class MQTT extends PubSub
         }
 
         $this->client = new MosquittoClient($host, $port, $clientId, $username, $password, $capath);
+    }
+
+    /** {@inheritdoc} */
+    public function getQueueType()
+    {
+        return static::QUEUE_TYPE;
     }
 }

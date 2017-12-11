@@ -146,9 +146,6 @@ class MosquittoClient implements MessageQueueInterface
     public function subscribe(array $payload)
     {
         $topics = $payload;
-        $topicsJson = json_encode($topics, JSON_UNESCAPED_SLASHES);
-        Cache::forever(Subscribe::SUBSCRIPTION, $topicsJson);
-
         try {
             $client = MosquittoClient::client($this->getConfig());
 
@@ -191,7 +188,6 @@ class MosquittoClient implements MessageQueueInterface
             $this->execute($client);
         } catch (\Exception $e) {
             Log::error('[MQTT] Exception occurred. Terminating subscription. ' . $e->getMessage());
-            Cache::forget(Subscribe::SUBSCRIPTION);
             Cache::forever(Subscribe::TERMINATOR, false);
         }
     }
@@ -209,7 +205,6 @@ class MosquittoClient implements MessageQueueInterface
                 if (Cache::get(Subscribe::TERMINATOR, false) === true) {
                     Log::info('[MQTT] Terminate subscription signal received. Ending subscription job.');
                     Cache::forever(Subscribe::TERMINATOR, false);
-                    Cache::forget(Subscribe::SUBSCRIPTION);
 
                     throw new LoopException('Terminated on demand.');
                 }

@@ -6,7 +6,6 @@ use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\MQTT\Jobs\Subscribe;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use Illuminate\Support\Arr;
-use Cache;
 
 class Sub extends \DreamFactory\Core\PubSub\Resources\Sub
 {
@@ -32,17 +31,6 @@ class Sub extends \DreamFactory\Core\PubSub\Resources\Sub
                 'Please terminate the current process before subscribing to new topic(s)'
             );
         }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function handleDELETE()
-    {
-        // Put a terminate flag in the cache to terminate the subscription job.
-        Cache::put(Subscribe::TERMINATOR, true, config('df.default_cache_ttl', 300));
-
-        return ["success" => true];
     }
 
     /**
