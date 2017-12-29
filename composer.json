@@ -19,13 +19,13 @@
     }
   ],
   "support":     {
-    "email":  "arifislam@dreamfactory.com",
+    "email":  "dspsupport@dreamfactory.com",
     "source": "https://github.com/dreamfactorysoftware/df-mqtt",
     "issues": "https://github.com/dreamfactorysoftware/df-mqtt/issues",
-    "wiki":   "https://github.com/dreamfactorysoftware/df-mqtt/wiki"
+    "wiki":   "https://wiki.dreamfactory.com"
   },
   "require":     {
-    "dreamfactory/df-core": "~0.13.0"
+    "dreamfactory/df-pubsub": "~0.1.0"
   },
   "autoload":    {
     "psr-4": {
@@ -34,7 +34,12 @@
   },
   "extra":       {
     "branch-alias": {
-      "dev-develop": "0.3.x-dev"
+      "dev-develop": "0.4.x-dev"
+    },
+    "laravel": {
+      "providers": [
+        "DreamFactory\\Core\\MQTT\\ServiceProvider"
+      ]
     }
   }
 }
