@@ -26,6 +26,12 @@
   },
   "minimum-stability": "dev",
   "prefer-stable": true,
+  "repositories": [
+    {
+      "type": "vcs",
+      "url":  "https://github.com/dreamfactorysoftware/df-pubsub"
+    }
+  ],
   "require":     {
     "dreamfactory/df-pubsub": "~0.1.1"
   },
