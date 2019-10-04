@@ -24,6 +24,8 @@
     "issues": "https://github.com/dreamfactorysoftware/df-mqtt/issues",
     "wiki":   "https://wiki.dreamfactory.com"
   },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
   "require":     {
     "dreamfactory/df-pubsub": "~0.1.1"
   },
