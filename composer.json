@@ -33,7 +33,7 @@
     }
   ],
   "require":     {
-    "dreamfactory/df-pubsub": "~0.2.0"
+    "dreamfactory/df-pubsub": "~0.2.1"
   },
   "autoload":    {
     "psr-4": {
