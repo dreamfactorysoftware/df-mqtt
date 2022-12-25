@@ -7,6 +7,7 @@ use DreamFactory\Core\MQTT\Resources\Pub;
 use DreamFactory\Core\MQTT\Resources\Sub;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\PubSub\Services\PubSub;
+use Arr;
 
 class MQTT extends PubSub
 {
@@ -38,13 +39,13 @@ class MQTT extends PubSub
         if (empty($config)) {
             throw new InternalServerErrorException('No service configuration found for MQTT service.');
         }
-        $host = array_get($config, 'host');
-        $port = array_get($config, 'port');
-        $clientId = array_get($config, 'client_id', 'df-client-' . time());
-        $username = array_get($config, 'username');
-        $password = array_get($config, 'password');
-        $useTls = array_get($config, 'use_tls');
-        $capath = array_get($config, 'capath');
+        $host = Arr::get($config, 'host');
+        $port = Arr::get($config, 'port');
+        $clientId = Arr::get($config, 'client_id', 'df-client-' . time());
+        $username = Arr::get($config, 'username');
+        $password = Arr::get($config, 'password');
+        $useTls = Arr::get($config, 'use_tls');
+        $capath = Arr::get($config, 'capath');
         if (!$useTls) {
             $capath = null;
         }

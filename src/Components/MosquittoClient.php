@@ -2,14 +2,18 @@
 
 namespace DreamFactory\Core\MQTT\Components;
 
+use \PhpMqtt\Client\Exceptions\MqttClientException;
+use \PhpMqtt\Client\ConnectionSettings;
+use \PhpMqtt\Client\MqttClient;
 use DreamFactory\Core\PubSub\Contracts\MessageQueueInterface;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use DreamFactory\Core\MQTT\Exceptions\LoopException;
+use DreamFactory\Core\Exceptions\DfServiceException;
 use DreamFactory\Core\MQTT\Jobs\Subscribe;
 use DreamFactory\Core\Enums\Verbs;
 use ServiceManager;
 use Cache;
 use Log;
+use Arr;
 
 class MosquittoClient implements MessageQueueInterface
 {
@@ -30,6 +34,8 @@ class MosquittoClient implements MessageQueueInterface
 
     /** @var null|string */
     protected $caPath;
+
+    protected \PhpMqtt\Client\ConnectionSettings $connectionSettings;
 
     /**
      * MosquittoClient constructor.
@@ -73,23 +79,34 @@ class MosquittoClient implements MessageQueueInterface
      *
      * @param $config
      *
-     * @return \Mosquitto\Client
+     * @return \PhpMqtt\Client\MqttClient
      */
-    public static function client($config)
+    public function client($config)
     {
-        $clientId = array_get($config, 'client_id', 'df-client-' . time());
-        $username = array_get($config, 'username');
-        $password = array_get($config, 'password');
-        $caPath = array_get($config, 'ca_path');
-        $client = new \Mosquitto\Client($clientId);
-        if (!empty($username) && !empty($password)) {
-            $client->setCredentials($username, $password);
-        }
-        if (!empty($caPath)) {
-            $client->setTlsCertificates($caPath);
-        }
+        $clientId = Arr::get($config, 'client_id');
+        $username = Arr::get($config, 'username');
+        $password = Arr::get($config, 'password');
+        $caPath = Arr::get($config, 'ca_path');
+        $host = Arr::get($config, 'host');
+        $port = Arr::get($config, 'port');
+        try {
+            $client = new MqttClient($host, $port, $clientId, MqttClient::MQTT_3_1_1);
 
-        return $client;
+            if (!empty($username) && !empty($password)) {
+                $this->connectionSettings = (new ConnectionSettings)
+                                                ->setUsername($username)
+                                                ->setPassword($password);
+            }
+            if (!empty($caPath)) {
+                $this->connectionSettings = (new ConnectionSettings)
+                                                ->setUseTls(true)
+                                                ->setTlsCertificateAuthorityPath($caPath);
+            }
+            return $client;
+        } catch (MqttClientException $e) {
+            Log::error('Error occurred while creating MQTT client. ' . $e->getMessage());
+            throw new DfServiceException('Couldn\'t create MQTT client. ' . $e->getMessage());
+        }
     }
 
     /**
@@ -101,40 +118,38 @@ class MosquittoClient implements MessageQueueInterface
      */
     public function publish(array $data)
     {
-        $topic = array_get($data, 'topic');
-        $msg = array_get($data, 'message', array_get($data, 'msg'));
+        try {
+            $topic = Arr::get($data, 'topic');
+            $msg = Arr::get($data, 'message', Arr::get($data, 'msg'));
 
-        if (empty($topic) || empty($msg)) {
-            throw new InternalServerErrorException('No topic and/or message supplied for publishing.');
-        }
+            if (empty($topic) || empty($msg)) {
+                throw new InternalServerErrorException('No topic and/or message supplied for publishing.');
+            }
 
-        $client = static::client($this->getConfig());
-        $client->onConnect(function () use ($client, $topic, $msg){
+            $client = $this->client($this->getConfig());
+
+            $client->connect($this->connectionSettings, true);
             Log::info('[MQTT] Connected to MQTT broker.');
-            Log::debug('[MQTT] Now publishing message: ' . $msg . ' using topic: ' . $topic);
-            $client->publish($topic, $msg);
-        });
-        $client->onMessage(function ($m) use ($topic, $msg){
-            Log::info('[MQTT] Message received.');
-            Log::debug('[MQTT] Received message on topic: ' . $m->topic . ' with payload ' . $m->payload);
-            if ($topic === $m->topic && $msg === $m->payload) {
-                throw new LoopException('Publish Completed.');
-            }
-        });
-        $client->connect($this->host, $this->port);
-        // Subscribing to the published topic in order to
-        // successfully terminate the execution loop upon
-        // checking the reception of the published topic/message.
-        $client->subscribe($topic, 0);
-        while (1) {
-            try {
-                $client->loop();
-            } catch (LoopException $e) {
-                $client->disconnect();
-                unset($client);
 
-                return;
-            }
+            $handler = function (MqttClient $client, string $topic, string $message) {
+                Log::debug('[MQTT] Now publishing message: ' . $message . ' using topic: ' . $topic);
+            };
+
+            $client->registerPublishEventHandler($handler);
+
+            $client->publish($topic, $msg, MqttClient::QOS_AT_LEAST_ONCE, true);
+
+            $client->loop(true, true);
+
+            $client->disconnect();
+            unset($client);
+
+            Log::info('[MQTT] Message received.');
+            Log::debug('[MQTT] Received message on topic: "' . $topic . '" with payload "' . $msg . '"');
+
+        } catch (MqttClientException $e) {
+            Log::error('[MQTT] Exception occurred. Terminating publish. ' . $e->getMessage());
+            throw new DfServiceException('Couldn\'t publish. ' . $e->getMessage());
         }
     }
 
@@ -147,46 +162,33 @@ class MosquittoClient implements MessageQueueInterface
     {
         $topics = $payload;
         try {
-            $client = MosquittoClient::client($this->getConfig());
+            $client = $this->client($this->getConfig());
 
-            $client->onConnect(function (){
-                Log::info('[MQTT] Connected to MQTT broker for subscription.');
-            });
-            $client->onMessage(function ($m) use ($topics){
-                Log::debug('[MQTT] Received message on topic: ' . $m->topic . ' with payload ' . $m->payload);
+            $client->connect($this->connectionSettings, true);
 
-                $service = array_by_key_value($topics, 'topic', $m->topic, 'service');
-                Log::debug('[MQTT] Triggering service: ' . json_encode($service));
+            Log::info('[MQTT] Connected to MQTT broker for subscription.');
 
-                // Retrieve service information
-                $endpoint = trim(array_get($service, 'endpoint'), '/');
-                $endpoint = str_replace('api/v2/', '', $endpoint);
-                $endpointArray = explode('/', $endpoint);
-                $serviceName = array_get($endpointArray, 0);
-                array_shift($endpointArray);
-                $resource = implode('/', $endpointArray);
-                $verb = strtoupper(array_get($service, 'verb', array_get($service, 'method', Verbs::POST)));
-                $params = array_get($service, 'parameter', array_get($service, 'parameters', []));
-                $header = array_get($service, 'header', array_get($service, 'headers', []));
-                $payload = array_get($service, 'payload', []);
-                $payload['message'] = $m->payload;
+            $handler = function (MqttClient $client, string $topic, string $message) use ($topics) {
+                Log::info('[MQTT] Received message on topic: ' . $topic . ' with payload ' . $message);
 
-                /** @var \DreamFactory\Core\Utility\ServiceResponse $rs */
-                $rs =
-                    ServiceManager::handleRequest($serviceName, $verb, $resource, $params, $header, $payload, null,
-                        false);
-                $content = $rs->getContent();
+                /** @var \DreamFactory\Core\Utility\ServiceResponse $response */
+                $response = $this->sendServiceRequest($topics, $topic, $message);
+                $content = $response->getContent();
                 $content = (is_array($content)) ? json_encode($content) : $content;
+
                 Log::debug('[MQTT] Trigger response: ' . $content);
-            });
-            $client->connect($this->host, $this->port);
+            };
+            
+            // Register an event handler which is called whenever a message is received
+            $client->registerMessageReceivedEventHandler($handler);
 
             foreach ($topics as $t) {
-                $client->subscribe($t['topic'], 0);
+                $client->subscribe($t['topic'], null,MqttClient::QOS_AT_MOST_ONCE);
             }
 
             $this->execute($client);
-        } catch (\Exception $e) {
+            
+        } catch (MqttClientException $e) {
             Log::error('[MQTT] Exception occurred. Terminating subscription. ' . $e->getMessage());
             Cache::forever(Subscribe::TERMINATOR, false);
         }
@@ -195,25 +197,52 @@ class MosquittoClient implements MessageQueueInterface
     /**
      * Loops client and listens for message on subscribed topics.
      *
-     * @param \Mosquitto\Client $client
+     * @param \PhpMqtt\Client\MqttClient $client
      */
     protected function execute($client)
     {
-        while (1) {
-            try {
-                $client->loop();
-                if (Cache::get(Subscribe::TERMINATOR, false) === true) {
-                    Log::info('[MQTT] Terminate subscription signal received. Ending subscription job.');
-                    Cache::forever(Subscribe::TERMINATOR, false);
+        while (true) {
+            $client->loopOnce(microtime(true), true);
+            if (Cache::get(Subscribe::TERMINATOR, false) === true) {
 
-                    throw new LoopException('Terminated on demand.');
-                }
-            } catch (LoopException $e) {
+                Log::info('[MQTT] Terminate subscription signal received. Ending subscription job.');
+                Cache::forever(Subscribe::TERMINATOR, false);
+
                 $client->disconnect();
                 unset($client);
 
                 return;
             }
         }
+    }
+
+    /**
+     * Send request to appointed endpoint
+     *
+     * @param array $topics
+     * @param string $currentTopic
+     * @param string $message
+     *  
+     * @return \DreamFactory\Core\Utility\ServiceResponse
+     */
+    protected function sendServiceRequest($topics, $currentTopic, $message) {
+        // Retrieve service information
+        $service = array_by_key_value($topics, 'topic', $currentTopic, 'service');
+        Log::info('[MQTT] Triggering service: ' . json_encode($service));
+
+        $endpoint = trim(Arr::get($service, 'endpoint'), '/');
+        $endpoint = str_replace('api/v2/', '', $endpoint);
+        $endpointArray = explode('/', $endpoint);
+
+        $serviceName = Arr::get($endpointArray, 0);
+        array_shift($endpointArray);
+        $verb = strtoupper(Arr::get($service, 'verb', Arr::get($service, 'method', Verbs::POST)));
+        $resource = implode('/', $endpointArray);
+        $params = Arr::get($service, 'parameter', Arr::get($service, 'parameters', []));
+        $header = Arr::get($service, 'header', Arr::get($service, 'headers', []));
+        $payload = Arr::get($service, 'payload', []);
+        $payload['message'] = $message;
+
+        return ServiceManager::handleRequest($serviceName, $verb, $resource, $params, $header, $payload, null, false);
     }
 }
