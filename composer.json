@@ -33,7 +33,7 @@
     }
   ],
   "require":     {
-    "dreamfactory/df-pubsub": "~0.2",
+    "dreamfactory/df-pubsub": "~0.3",
     "php-mqtt/client": "^1.7"
   },
   "autoload":    {
