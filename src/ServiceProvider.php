@@ -21,7 +21,6 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
                     'label'                 => 'MQTT Client',
                     'description'           => 'MQTT Client based on Mosquitto',
                     'group'                 => ServiceTypeGroups::IOT,
-                    'subscription_required' => LicenseLevel::SILVER,
                     'config_handler'        => MQTTConfig::class,
                     'factory'               => function ($config){
                         return new MQTT($config);
