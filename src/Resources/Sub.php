@@ -29,6 +29,15 @@ class Sub extends \DreamFactory\Core\PubSub\Resources\Sub
                 'app_id'  => Session::get('app.id'),
                 'user_id' => Session::getCurrentUserId(),
             ];
+            if (empty($runAs['app_id']) && empty($runAs['user_id'])) {
+                // Without an identity the consumer would run every callback
+                // unauthenticated and every one of them would be denied. Say so
+                // now, rather than accepting a subscription that can never work.
+                throw new BadRequestException(
+                    'Cannot determine the identity to run this subscription as. ' .
+                    'Subscribe with an API key, a session token, or both.'
+                );
+            }
             foreach ($payload as &$entry) {
                 if (is_array($entry)) {
                     $entry['run_as'] = $runAs;

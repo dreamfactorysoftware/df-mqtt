@@ -173,12 +173,20 @@ class MosquittoClient implements MessageQueueInterface
             $handler = function (MqttClient $client, string $topic, string $message) use ($topics) {
                 Log::info('[MQTT] Received message on topic: ' . $topic . ' with payload ' . $message);
 
-                /** @var \DreamFactory\Core\Utility\ServiceResponse $response */
-                $response = $this->sendServiceRequest($topics, $topic, $message);
-                $content = $response->getContent();
-                $content = (is_array($content)) ? json_encode($content) : $content;
+                try {
+                    /** @var \DreamFactory\Core\Utility\ServiceResponse $response */
+                    $response = $this->sendServiceRequest($topics, $topic, $message);
+                    $content = $response->getContent();
+                    $content = (is_array($content)) ? json_encode($content) : $content;
 
-                Log::debug('[MQTT] Trigger response: ' . $content);
+                    Log::debug('[MQTT] Trigger response: ' . $content);
+                } catch (\Exception $e) {
+                    // One failed trigger must not end the subscription. Only
+                    // MqttClientException is caught below, so anything else --
+                    // a denied request, an erroring target service -- would
+                    // escape subscribe() entirely and fail the queued job.
+                    Log::error('[MQTT] Trigger failed for topic ' . $topic . ': ' . $e->getMessage());
+                }
             };
             
             // Register an event handler which is called whenever a message is received
@@ -250,12 +258,16 @@ class MosquittoClient implements MessageQueueInterface
         // normal API call. Without this the callback dispatched with permissions
         // disabled, letting any pub/sub-capable user reach admin-only endpoints.
         $runAs = array_by_key_value($topics, 'topic', $currentTopic, 'run_as') ?: [];
-        $appId = (int)Arr::get($runAs, 'app_id');
+        $appId = Arr::get($runAs, 'app_id');
+        $appId = !empty($appId) ? (int)$appId : null;
         $userId = Arr::get($runAs, 'user_id');
         $userId = !empty($userId) ? (int)$userId : null;
-        if (!empty($appId)) {
+        if (!empty($appId) || !empty($userId)) {
+            // An app on its own carries the app's role; a user on its own is how
+            // an admin-created subscription runs. Either is enough to establish
+            // an identity.
             Session::setSessionData($appId, $userId);
-            if ($apiKey = App::getCachedInfo($appId, 'api_key')) {
+            if (!empty($appId) && ($apiKey = App::getCachedInfo($appId, 'api_key'))) {
                 Session::setApiKey($apiKey);
             }
         }
