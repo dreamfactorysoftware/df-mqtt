@@ -10,6 +10,8 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\DfServiceException;
 use DreamFactory\Core\MQTT\Jobs\Subscribe;
 use DreamFactory\Core\Enums\Verbs;
+use DreamFactory\Core\Models\App;
+use DreamFactory\Core\Utility\Session;
 use ServiceManager;
 use Cache;
 use Log;
@@ -243,6 +245,21 @@ class MosquittoClient implements MessageQueueInterface
         $payload = Arr::get($service, 'payload', []);
         $payload['message'] = $message;
 
-        return ServiceManager::handleRequest($serviceName, $verb, $resource, $params, $header, $payload, null, false);
+        // Re-establish the subscriber's identity so the triggered request runs
+        // under the creator's role and lookups, then permission-check it like a
+        // normal API call. Without this the callback dispatched with permissions
+        // disabled, letting any pub/sub-capable user reach admin-only endpoints.
+        $runAs = array_by_key_value($topics, 'topic', $currentTopic, 'run_as') ?: [];
+        $appId = (int)Arr::get($runAs, 'app_id');
+        $userId = Arr::get($runAs, 'user_id');
+        $userId = !empty($userId) ? (int)$userId : null;
+        if (!empty($appId)) {
+            Session::setSessionData($appId, $userId);
+            if ($apiKey = App::getCachedInfo($appId, 'api_key')) {
+                Session::setApiKey($apiKey);
+            }
+        }
+
+        return ServiceManager::handleRequest($serviceName, $verb, $resource, $params, $header, $payload, null, true);
     }
 }
