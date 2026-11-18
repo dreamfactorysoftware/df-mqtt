@@ -3,14 +3,19 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
-### Added
 
+## [0.7.1] - 2026-11-18
+### Changed
+- A subscription keeps running when a triggered service call returns an error, and the outcome is logged.
+- Subscribe requests need an API key or a session; a request with neither returns 400.
+
+## Earlier releases (0.5.0 - 0.7.0)
+### Added
 - Support for php 8
 
 ### Changed
 - Changed MQTT Broker, see [php-mqtt/client](https://github.com/php-mqtt/client)
 
-## [Unreleased]
 ## [0.4.0] - 2017-12-28
 ### Added
 - Added package discovery
