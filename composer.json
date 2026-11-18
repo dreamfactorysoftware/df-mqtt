@@ -36,7 +36,7 @@
     "php": "^8.3",
     "laravel/helpers": "^1.8",
     "dreamfactory/df-core": "~1.0.4",
-    "dreamfactory/df-pubsub": "~0.2",
+    "dreamfactory/df-pubsub": "~0.3",
     "php-mqtt/client": "^1.7 || ^2.1"
   },
   "require-dev": {
